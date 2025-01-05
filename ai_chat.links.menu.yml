@@ -1,0 +1,5 @@
+ai_chat.settings_form:
+  title: 'AI chat'
+  route_name: 'ai_chat.settings_form'
+  parent: system.admin_config_system
+  description: 'Administer and configure AI chat.'

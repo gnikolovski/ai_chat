@@ -1,0 +1,8 @@
+services:
+  ai_chat.rate_limiter:
+    class: Drupal\ai_chat\ChatRateLimiter
+    autowire: true
+
+  ai_chat.ai_chat_service:
+    class: Drupal\ai_chat\AiChatService
+    autowire: true

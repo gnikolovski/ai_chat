@@ -1,0 +1,18 @@
+ai_chat.settings_form:
+  path: '/admin/config/system/ai-chat'
+  defaults:
+    _form: '\Drupal\ai_chat\Form\AiChatSettingsForm'
+    _title: 'AI chat'
+  requirements:
+    _permission: 'administer site configuration'
+
+ai_chat.api:
+  path: '/api/v1/ai-chat'
+  defaults:
+    _controller: '\Drupal\ai_chat\Controller\AiChatController::aiChat'
+    _format: json
+  methods:  [POST]
+  requirements:
+    _access: 'TRUE'
+  options:
+    no_cache: TRUE

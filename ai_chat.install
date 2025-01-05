@@ -1,0 +1,49 @@
+<?php
+
+/**
+ * @file
+ * Provides install and update hooks for the AI chat module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_requirements().
+ */
+function ai_chat_requirements($phase): array {
+  $requirements = [];
+
+  if ($phase == 'runtime') {
+    if (!class_exists('Qdrant\Qdrant')) {
+      $requirements['ai_chat_qdrant_php'] = [
+        'title' => t('AI chat: Qdrant PHP library'),
+        'description' => t('The hkulekci/qdrant-php library is missing.'),
+        'severity' => REQUIREMENT_ERROR,
+      ];
+    }
+    else {
+      $requirements['ai_chat_qdrant_php'] = [
+        'title' => t('AI chat: Qdrant PHP library'),
+        'description' => t('The hkulekci/qdrant-php library is installed.'),
+        'severity' => REQUIREMENT_OK,
+      ];
+    }
+
+    if (!class_exists('OpenAI')) {
+      $requirements['ai_chat_openai_php'] = [
+        'title' => t('AI chat: OpenAI PHP library'),
+        'description' => t('The openai-php/client library is missing.'),
+        'severity' => REQUIREMENT_ERROR,
+      ];
+    }
+    else {
+      $requirements['ai_chat_openai_php'] = [
+        'title' => t('AI chat: OpenAI PHP library'),
+        'description' => t('The openai-php/client library is installed.'),
+        'severity' => REQUIREMENT_OK,
+      ];
+    }
+  }
+
+  return $requirements;
+}

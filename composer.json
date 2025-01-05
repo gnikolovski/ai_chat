@@ -1,0 +1,26 @@
+{
+    "name": "gnikolovski/ai_chat",
+    "description": "Provides AI chat functionality.",
+    "type": "drupal-module",
+    "homepage": "https://gorannikolovski.com/product/ai-chat",
+    "authors": [
+        {
+            "name": "Goran Nikolovski",
+            "email": "goran@gorannikolovski.com",
+            "homepage": "https://gorannikolovski.com",
+            "role": "Developer"
+        }
+    ],
+    "support": {
+        "issues": "https://gorannikolovski.com/contact",
+        "email": "goran@gorannikolovski.com"
+    },
+    "license": "GPL-2.0+",
+    "minimum-stability": "dev",
+    "require": {
+        "drupal/core": "^10 || ^11",
+        "hkulekci/qdrant": "^0.5.8",
+        "openai-php/client": "^0.10.3",
+        "php": ">=8.1"
+    }
+}

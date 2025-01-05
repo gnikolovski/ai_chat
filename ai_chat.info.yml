@@ -1,0 +1,5 @@
+name: 'AI chat'
+type: module
+description: 'Provides AI chat functionality.'
+package: AI
+core_version_requirement: ^10 || ^11

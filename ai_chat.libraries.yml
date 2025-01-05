@@ -1,0 +1,8 @@
+chat-toggle:
+  css:
+    theme:
+      css/chat-toggle.css: {}
+  js:
+    js/chat-toggle.js: {}
+  dependencies:
+    - core/drupal
