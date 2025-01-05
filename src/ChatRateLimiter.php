@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
  */
 final class ChatRateLimiter {
 
-  const int REQUEST_COUNT_LIMIT = 1;
+  const int REQUEST_COUNT_LIMIT = 10;
 
   const int REQUEST_SECONDS_LIMIT = 60;
 
@@ -56,7 +56,9 @@ final class ChatRateLimiter {
       $data['count']++;
 
       if ($data['count'] > self::REQUEST_COUNT_LIMIT) {
-        $this->loggerFactory->get('ai_chat:ChatRateLimiter')->error('Rate limit for user with IP Address: @ip_address exceeded.');
+        $this->loggerFactory->get('ai_chat:ChatRateLimiter')->error('Rate limit for user with IP Address: @ip_address exceeded.', [
+          '@ip_address' => $this->requestStack->getCurrentRequest()->getClientIp(),
+        ]);
         return FALSE;
       }
 
