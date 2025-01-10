@@ -53,7 +53,7 @@ function ai_chat_page_attachments(array &$attachments): void {
             <div id="deep-chat-container">
               <deep-chat
                 connect=\'{"url": "/api/v1/ai-chat", "method": "POST", "headers": {"Content-Type": "application/json"}}\'
-                style="width: 400px; border-radius: 8px 8px 0 0; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); z-index: 9999;"
+                style="width: 500px; border-radius: 8px 8px 0 0; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); z-index: 9999;"
                 introMessage=\'{"text": "{{ intro_message }}"}\'
                 requestBodyLimits=\'{"maxMessages": 0}\'
                 avatars="true"
