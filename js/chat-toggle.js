@@ -7,12 +7,11 @@
         const header = container.querySelector('.ai-chat-header');
         const window = container.querySelector('.ai-chat-window');
         const icon = container.querySelector('.ai-chat-icon');
+        const is_visible = localStorage.getItem('aiChatVisible') !== 'false';
 
-        const isVisible = localStorage.getItem('chatVisible') !== 'false';
-        if (isVisible) {
+        if (is_visible) {
           window.classList.add('is-open');
           icon.style.transform = 'rotate(180deg)';
-
         }
         else {
           window.classList.remove('is-open');
@@ -20,11 +19,25 @@
         }
 
         header.addEventListener('click', function() {
-          const isOpen = window.classList.toggle('is-open');
-          icon.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
-          localStorage.setItem('chatVisible', isOpen);
+          const is_open = window.classList.toggle('is-open');
+          icon.style.transform = is_open ? 'rotate(180deg)' : 'rotate(0deg)';
+          localStorage.setItem('aiChatVisible', String(is_open));
+        });
+
+        document.addEventListener('keydown', function(event) {
+          if (event.key === 'Escape' && window.classList.contains('is-open')) {
+            window.classList.remove('is-open');
+            icon.style.transform = 'rotate(0deg)';
+            localStorage.setItem('aiChatVisible', 'false');
+          }
+          else if (event.key.toLowerCase() === 'a' && !window.classList.contains('is-open')) {
+            window.classList.add('is-open');
+            icon.style.transform = 'rotate(180deg)';
+            localStorage.setItem('aiChatVisible', 'true');
+          }
         });
       });
     }
   };
+
 })(Drupal, once);
