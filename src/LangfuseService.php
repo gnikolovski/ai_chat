@@ -157,6 +157,10 @@ final class LangfuseService {
    *   The response from the AI model.
    * @param array $usage
    *   Token usage statistics for the generation.
+   * @param string $start_time
+   *   The start time.
+   * @param string $end_time
+   *   The end time.
    * @param string|null $parent_id
    *   Optional ID of the parent observation.
    * @param string|null $model
@@ -206,7 +210,7 @@ final class LangfuseService {
    */
   protected function sendEvent(array $events): void {
     $config = $this->getLangfuseConfig();
-    $this->httpClient->post($config['base_url'] . '/api/public/ingestion', [
+    $this->httpClient->request('POST', $config['base_url'] . '/api/public/ingestion', [
       'headers' => [
         'Authorization' => 'Basic ' . base64_encode($config['public_key'] . ':' . $config['secret_key']),
         'Content-Type' => 'application/json',

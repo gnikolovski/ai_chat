@@ -20,11 +20,6 @@ final class AiChatController extends ControllerBase {
 
   /**
    * Constructs an AiChatController object.
-   *
-   * @param \Drupal\ai_chat\AiChatService $aiChatService
-   *   The AI chat service.
-   * @param \Drupal\ai_chat\ChatRateLimiter $rateLimiter
-   *   The rate limiter service.
    */
   public function __construct(
     #[Autowire(service: 'ai_chat.ai_chat_service')]

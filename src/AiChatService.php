@@ -86,6 +86,8 @@ final class AiChatService {
    *
    * @param array $messages
    *   The chat messages.
+   * @param string $trace_id
+   *   The trace ID.
    *
    * @return string
    *   The retrieved context.
@@ -147,6 +149,8 @@ final class AiChatService {
    *   The original messages.
    * @param string $context
    *   The retrieved context.
+   * @param string $trace_id
+   *   The trace ID.
    *
    * @return array
    *   The prepared messages.
@@ -179,6 +183,8 @@ final class AiChatService {
    *
    * @param array $messages
    *   The prepared messages.
+   * @param string $trace_id
+   *   The trace ID.
    *
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    *   The JSON response.
