@@ -20,13 +20,6 @@ final class ChatRateLimiter {
 
   /**
    * Constructor for ChatRateLimiter.
-   *
-   * @param \Drupal\Core\Cache\CacheBackendInterface $cache
-   *   Cache service for storing rate limit data.
-   * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
-   *   Request stack.
-   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
-   *   Logger factory.
    */
   public function __construct(
     #[Autowire(service: 'cache.default')]
