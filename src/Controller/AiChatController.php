@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\ai_chat\Controller;
 
+use Drupal\ai_chat\LangfuseService;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\ai_chat\AiChatService;
 use Drupal\ai_chat\ChatRateLimiter;
@@ -30,6 +31,8 @@ final class AiChatController extends ControllerBase {
     protected AiChatService $aiChatService,
     #[Autowire(service: 'ai_chat.rate_limiter')]
     protected ChatRateLimiter $rateLimiter,
+    #[Autowire(service: 'ai_chat.langfuse_service')]
+    protected LangfuseService $langfuse,
   ) {}
 
   /**
@@ -62,6 +65,15 @@ final class AiChatController extends ControllerBase {
         ]);
       }
 
+      $trace_id = $this->langfuse->createTrace('chat_request', [
+        'request_ip' => $request->getClientIp(),
+        'request_method' => $request->getMethod(),
+        'user_agent' => $request->headers->get('User-Agent'),
+        'user_id' => $this->currentUser()->id(),
+        'user_roles' => $this->currentUser()->getRoles(),
+        'is_anonymous' => $this->currentUser()->isAnonymous(),
+      ]);
+
       // Transform messages to the format expected by OpenAI.
       $messages = array_map(function ($message) {
         return [
@@ -70,10 +82,10 @@ final class AiChatController extends ControllerBase {
         ];
       }, $data['messages']);
 
-      $context = $this->aiChatService->retrieveContext($messages);
-      $prepared_messages = $this->aiChatService->prepareMessages($messages, $context);
+      $context = $this->aiChatService->retrieveContext($messages, $trace_id);
+      $prepared_messages = $this->aiChatService->prepareMessages($messages, $context, $trace_id);
+      $response = $this->aiChatService->handleResponse($prepared_messages, $trace_id);
 
-      $response = $this->aiChatService->handleResponse($prepared_messages);
       $response_data = json_decode($response->getContent(), TRUE);
 
       // Transform the response back to Deep Chat format.

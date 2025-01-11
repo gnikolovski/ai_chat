@@ -25,6 +25,8 @@ final class AiChatService {
   public function __construct(
     #[Autowire(service: 'config.factory')]
     protected ConfigFactoryInterface $configFactory,
+    #[Autowire(service: 'ai_chat.langfuse_service')]
+    protected LangfuseService $langfuse,
   ) {}
 
   /**
@@ -88,7 +90,9 @@ final class AiChatService {
    * @return string
    *   The retrieved context.
    */
-  public function retrieveContext(array $messages): string {
+  public function retrieveContext(array $messages, string $trace_id): string {
+    $span_id = $this->langfuse->createSpan($trace_id, 'retrieve_context');
+
     $config = $this->configFactory->get('ai_chat.settings');
     $combined_messages_count = (int) $config->get('combined_messages_count');
 
@@ -104,7 +108,9 @@ final class AiChatService {
     }, $recent_messages));
 
     // Get embedding for the combined messages.
+    $embedding_span_id = $this->langfuse->createSpan($trace_id, 'get_embedding', $span_id);
     $content_embedding = $this->getEmbeddingForData($combined_content);
+    $this->langfuse->updateSpan($embedding_span_id, $trace_id);
 
     $top_k = (int) $config->get('top_k');
     $search_request = (new SearchRequest(new VectorStruct($content_embedding, 'content')))
@@ -115,18 +121,23 @@ final class AiChatService {
       ])
       ->setWithPayload(TRUE);
 
+    $qdrant_span_id = $this->langfuse->createSpan($trace_id, 'qdrant_search', $span_id);
     $client = $this->getQdrantClient();
     $qdrant_collection_name = $config->get('qdrant_collection_name');
     $response = $client->collections($qdrant_collection_name)
       ->points()
       ->search($search_request);
+    $this->langfuse->updateSpan($qdrant_span_id, $trace_id);
 
     $context = [];
     foreach ($response['result'] as $item) {
       $context[] = $item['payload']['text'];
     }
 
-    return implode("\n", $context);
+    $result = implode("\n", $context);
+    $this->langfuse->updateSpan($span_id, $trace_id, ['context_length' => strlen($result)]);
+
+    return $result;
   }
 
   /**
@@ -140,7 +151,9 @@ final class AiChatService {
    * @return array
    *   The prepared messages.
    */
-  public function prepareMessages(array $messages, string $context): array {
+  public function prepareMessages(array $messages, string $context, string $trace_id): array {
+    $span_id = $this->langfuse->createSpan($trace_id, 'prepare_messages');
+
     $config = $this->configFactory->get('ai_chat.settings');
     $system_instructions = $config->get('openai_system_instructions');
 
@@ -151,7 +164,14 @@ final class AiChatService {
     ];
 
     // Return all messages with the system message at the start.
-    return array_merge([$system_message], $messages);
+    $prepared_messages = array_merge([$system_message], $messages);
+
+    $this->langfuse->updateSpan($span_id, $trace_id, [
+      'message_count' => count($prepared_messages),
+      'system_instruction_length' => strlen($system_instructions),
+    ]);
+
+    return $prepared_messages;
   }
 
   /**
@@ -163,17 +183,47 @@ final class AiChatService {
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    *   The JSON response.
    */
-  public function handleResponse(array $messages): JsonResponse {
+  public function handleResponse(array $messages, string $trace_id): JsonResponse {
     $config = $this->configFactory->get('ai_chat.settings');
     $chat_model = $config->get('openai_chat_model');
     $max_tokens = $config->get('openai_max_completion_tokens');
     $temperature = $config->get('openai_temperature');
 
+    $openai_span_id = $this->langfuse->createSpan($trace_id, 'openai_request');
+    $start_time = date('c');
     $response = $this->getOpenAiClient()->chat()->create([
       'model' => $chat_model,
       'messages' => $messages,
       'max_tokens' => (int) $max_tokens,
       'temperature' => (float) $temperature,
+    ]);
+    $end_time = date('c');
+
+    $this->langfuse->recordGeneration(
+      $trace_id,
+      'chat_completion',
+      $messages,
+      [
+        'role' => 'assistant',
+        'content' => $response->choices[0]->message->content,
+      ],
+      [
+        'prompt_tokens' => $response->usage->promptTokens,
+        'completion_tokens' => $response->usage->completionTokens,
+        'total_tokens' => $response->usage->totalTokens,
+      ],
+      $start_time,
+      $end_time,
+      $openai_span_id,
+      $chat_model,
+    );
+
+    $this->langfuse->updateSpan($openai_span_id, $trace_id, [
+      'usage' => [
+        'prompt_tokens' => $response->usage->promptTokens,
+        'completion_tokens' => $response->usage->completionTokens,
+        'total_tokens' => $response->usage->totalTokens,
+      ],
     ]);
 
     return new JsonResponse([
