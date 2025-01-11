@@ -3,6 +3,10 @@ services:
     class: Drupal\ai_chat\ChatRateLimiter
     autowire: true
 
+  ai_chat.langfuse_service:
+    class: Drupal\ai_chat\LangfuseService
+    autowire: true
+
   ai_chat.ai_chat_service:
     class: Drupal\ai_chat\AiChatService
     autowire: true
