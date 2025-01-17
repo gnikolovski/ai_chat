@@ -65,10 +65,13 @@ final class LangfuseService {
         'id' => $trace_id,
         'timestamp' => date('c'),
         'name' => $name,
-        'userId' => $this->currentUser->id(),
         'metadata' => $metadata,
       ],
     ];
+
+    if ($this->currentUser->isAuthenticated()) {
+      $event['body']['userId'] = $this->currentUser->id();
+    }
 
     $this->sendEvent([$event]);
     return $trace_id;
