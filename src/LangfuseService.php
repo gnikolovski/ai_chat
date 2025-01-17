@@ -7,7 +7,6 @@ namespace Drupal\ai_chat;
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Session\AccountProxyInterface;
-use Drupal\Core\Session\SessionManagerInterface;
 use GuzzleHttp\ClientInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
@@ -24,8 +23,6 @@ final class LangfuseService {
     protected ConfigFactoryInterface $configFactory,
     #[Autowire(service: 'http_client')]
     protected ClientInterface $httpClient,
-    #[Autowire(service: 'session_manager')]
-    protected SessionManagerInterface $sessionManager,
     #[Autowire(service: 'uuid')]
     protected UuidInterface $uuid,
     #[Autowire(service: 'current_user')]
@@ -70,7 +67,6 @@ final class LangfuseService {
         'name' => $name,
         'userId' => $this->currentUser->id(),
         'metadata' => $metadata,
-        'sessionId' => $this->sessionManager->getId(),
       ],
     ];
 
