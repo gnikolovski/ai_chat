@@ -22,7 +22,10 @@
           localStorage.setItem('aiChatVisible', String(is_open));
         });
         document.addEventListener('keydown', function(event) {
-          if (event.key === 'Escape' && window.classList.contains('is-open')) {
+          if (
+            (event.key === 'Escape' || (event.ctrlKey && event.key === '/')) &&
+            window.classList.contains('is-open')
+          ) {
             window.classList.remove('is-open');
             icon.style.transform = 'rotate(0deg)';
             localStorage.setItem('aiChatVisible', 'false');
