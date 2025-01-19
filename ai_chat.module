@@ -44,7 +44,7 @@ function ai_chat_page_attachments(array &$attachments): void {
       '#template' => '
         <div class="ai-chat-container">
           <div class="ai-chat-header">
-            <span class="ai-chat-title">{{ ai_chat_title }}</span>
+            <span class="ai-chat-title" title="{{ ai_chat_hint }}"><span class="ai-chat-bullet"></span> {{ ai_chat_title }}</span>
             <button class="ai-chat-toggle">
               <img src="/' . $module_path . '/icons/chevron-up.png" alt="Toggle chat" height="16" width="16" class="ai-chat-icon">
             </button>
@@ -65,6 +65,7 @@ function ai_chat_page_attachments(array &$attachments): void {
       ',
       '#context' => [
         'ai_chat_title' => t('AI Assistant'),
+        'ai_chat_hint' => t('Use Ctrl + / to open and close the chat window.'),
         'intro_message' => t('Hi, I am your AI Assistant, here to help you explore articles, code snippets, and everything about the site and the author!'),
       ],
     ],
