@@ -1,6 +1,6 @@
 .ai-chat-container {
   position: fixed;
-  bottom: 20px;
+  bottom: 0;
   right: 20px;
   width: 500px;
   z-index: 1000;
@@ -10,7 +10,8 @@
   background: #42b6f3;
   color: white;
   padding: 12px 20px;
-  border-radius: 8px;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -24,6 +25,16 @@
   gap: 8px;
   line-height: 20px;
   height: 20px;
+}
+
+.ai-chat-bullet {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin: 0 8px;
+  content: "";
+  border-radius: 50%;
+  background: #0bdd3b;
 }
 
 .ai-chat-toggle {
