@@ -1,4 +1,5 @@
 chat-toggle:
+  version: 1.0.0
   css:
     theme:
       css/chat-toggle.css: {}
