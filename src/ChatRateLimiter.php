@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
  */
 final class ChatRateLimiter {
 
-  const int REQUEST_COUNT_LIMIT = 10;
+  const int REQUEST_COUNT_LIMIT = 5;
 
   const int REQUEST_SECONDS_LIMIT = 60;
 
