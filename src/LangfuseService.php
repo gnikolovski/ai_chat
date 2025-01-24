@@ -82,7 +82,7 @@ final class LangfuseService {
    * @return array
    *   The trace data.
    */
-  public function buildTraceData(string $name, array $metadata = []): array {
+  public function buildTraceData(string $name, array $metadata): array {
     $trace_id = $this->uuid->generate();
     $datetime = new \DateTime();
     $timestamp = $datetime->format(self::DATE_FORMAT);
@@ -96,12 +96,9 @@ final class LangfuseService {
         'timestamp' => $timestamp,
         'name' => $name,
         'sessionId' => $this->getSessionId(),
+        'metadata' => $metadata,
       ],
     ];
-
-    if (!empty($metadata)) {
-      $event['body']['metadata'] = $metadata;
-    }
 
     if ($this->currentUser->isAuthenticated()) {
       $event['body']['userId'] = $this->currentUser->id();
@@ -117,8 +114,6 @@ final class LangfuseService {
    *   The ID of the trace this span belongs to.
    * @param string $name
    *   The name of the span.
-   * @param bool $set_end_time
-   *   Flag that indicates if we need to set the end time.
    * @param string|null $parent_id
    *   Optional ID of the parent span.
    *
@@ -128,7 +123,6 @@ final class LangfuseService {
   public function buildSpanData(
     string $trace_id,
     string $name,
-    bool $set_end_time = FALSE,
     ?string $parent_id = NULL,
   ): array {
     $span_id = $this->uuid->generate();
@@ -146,10 +140,6 @@ final class LangfuseService {
         'startTime' => $timestamp,
       ],
     ];
-
-    if ($set_end_time) {
-      $event['body']['endTime'] = $timestamp;
-    }
 
     if (!empty($parent_id)) {
       $event['body']['parentObservationId'] = $parent_id;
@@ -173,7 +163,7 @@ final class LangfuseService {
    * @return array
    *   The updated span data.
    */
-  public function buildUpdateSpan(array $span_data, mixed $input = NULL, mixed $output = NULL, array $metadata = []): array {
+  public function buildUpdatedSpan(array $span_data, mixed $input = NULL, mixed $output = NULL, array $metadata = []): array {
     $datetime = new \DateTime();
     $timestamp = $datetime->format(self::DATE_FORMAT);
     $span_data['body']['endTime'] = $timestamp;

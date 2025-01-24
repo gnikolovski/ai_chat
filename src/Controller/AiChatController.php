@@ -58,8 +58,9 @@ final class AiChatController extends ControllerBase {
       $this->queue->get('ai_chat_langfuse_queue')->createItem($trace_data);
 
       // Check if rate limit is exceeded.
+      $span_data = $this->langfuse->buildSpanData($trace_id, 'rate_limit_exceeded');
       if ($this->rateLimiter->isAllowed() === FALSE) {
-        $span_data = $this->langfuse->buildSpanData($trace_id, 'rate_limit_exceeded', TRUE);
+        $span_data = $this->langfuse->buildUpdatedSpan($span_data);
         $this->queue->get('ai_chat_langfuse_queue')->createItem($span_data);
 
         $message = $this->t('Rate limit exceeded. Please try again later.');
@@ -73,8 +74,9 @@ final class AiChatController extends ControllerBase {
       $data = json_decode($content, TRUE);
 
       // Check if messages are properly formatted.
+      $span_data = $this->langfuse->buildSpanData($trace_id, 'invalid_message_format');
       if (!isset($data['messages']) || !is_array($data['messages'])) {
-        $span_data = $this->langfuse->buildSpanData($trace_id, 'invalid_message_format', TRUE);
+        $span_data = $this->langfuse->buildUpdatedSpan($span_data);
         $this->queue->get('ai_chat_langfuse_queue')->createItem($span_data);
 
         $message = $this->t('Invalid message format.');
@@ -95,6 +97,7 @@ final class AiChatController extends ControllerBase {
       // Combine the last *n* user messages, generate an embedding for the
       // combined content, and then perform a vector search against the Qdrant.
       $context = $this->aiChatService->retrieveContext($messages, $trace_id);
+
       $prepared_messages = $this->aiChatService->prepareMessages($messages, $context, $trace_id);
       $response = $this->aiChatService->getOpenAIResponse($prepared_messages, $trace_id);
       $response_data = json_decode($response->getContent(), TRUE);

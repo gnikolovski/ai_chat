@@ -15,6 +15,7 @@ use Qdrant\Models\VectorStruct;
 use Qdrant\Qdrant;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Yethee\Tiktoken\EncoderProvider;
 
 /**
  * Defines the AiChatService class.
@@ -96,6 +97,12 @@ final class AiChatService {
    *   The retrieved context.
    */
   public function retrieveContext(array $messages, string $trace_id): string {
+    $config = $this->configFactory->get('ai_chat.settings');
+    $chat_model = $config->get('openai_chat_model');
+
+    $provider = new EncoderProvider();
+    $encoder = $provider->getForModel($chat_model);
+
     $span_data = $this->langfuse->buildSpanData($trace_id, 'retrieve_context');
     $span_id = $span_data['id'];
 
@@ -115,11 +122,12 @@ final class AiChatService {
     }, $recent_messages));
 
     // Get embedding for the combined messages.
-    $embedding_span_data = $this->langfuse->buildSpanData($trace_id, 'get_embedding', FALSE, $span_id);
+    $embedding_span_data = $this->langfuse->buildSpanData($trace_id, 'get_embedding', $span_id);
     $content_embedding = $this->getEmbeddingForData($combined_content);
-    $embedding_span_data = $this->langfuse->buildUpdateSpan($embedding_span_data, $combined_content, $content_embedding);
+    $embedding_span_data = $this->langfuse->buildUpdatedSpan($embedding_span_data, $combined_content, $content_embedding, ['input_tokens' => $encoder->encode($combined_content)]);
     $this->queue->get('ai_chat_langfuse_queue')->createItem($embedding_span_data);
 
+    $qdrant_span_data = $this->langfuse->buildSpanData($trace_id, 'qdrant_search', $span_id);
     $top_k = (int) $config->get('top_k');
     $search_request = (new SearchRequest(new VectorStruct($content_embedding, 'content')))
       ->setLimit($top_k)
@@ -129,7 +137,6 @@ final class AiChatService {
       ])
       ->setWithPayload(TRUE);
 
-    $qdrant_span_data = $this->langfuse->buildSpanData($trace_id, 'qdrant_search', FALSE, $span_id);
     $client = $this->getQdrantClient();
     $qdrant_collection_name = $config->get('qdrant_collection_name');
     $response = $client->collections($qdrant_collection_name)
@@ -142,10 +149,10 @@ final class AiChatService {
     }
 
     $result = implode("\n", $context);
-    $qdrant_span_data = $this->langfuse->buildUpdateSpan($qdrant_span_data, $content_embedding, $result, ['context_length' => strlen($result)]);
+    $qdrant_span_data = $this->langfuse->buildUpdatedSpan($qdrant_span_data, $content_embedding, $result, ['output_tokens' => $encoder->encode($result)]);
     $this->queue->get('ai_chat_langfuse_queue')->createItem($qdrant_span_data);
 
-    $span_data = $this->langfuse->buildUpdateSpan($span_data);
+    $span_data = $this->langfuse->buildUpdatedSpan($span_data);
     $this->queue->get('ai_chat_langfuse_queue')->createItem($span_data);
 
     return $result;
@@ -165,6 +172,12 @@ final class AiChatService {
    *   The prepared messages.
    */
   public function prepareMessages(array $messages, string $context, string $trace_id): array {
+    $config = $this->configFactory->get('ai_chat.settings');
+    $chat_model = $config->get('openai_chat_model');
+
+    $provider = new EncoderProvider();
+    $encoder = $provider->getForModel($chat_model);
+
     $span_data = $this->langfuse->buildSpanData($trace_id, 'prepare_messages');
 
     $config = $this->configFactory->get('ai_chat.settings');
@@ -179,10 +192,7 @@ final class AiChatService {
     // Return all messages with the system message at the start.
     $prepared_messages = array_merge([$system_message], $messages);
 
-    $span_data = $this->langfuse->buildUpdateSpan($span_data, $messages, $prepared_messages, [
-      'message_count' => count($prepared_messages),
-      'system_instruction_length' => strlen($system_instructions),
-    ]);
+    $span_data = $this->langfuse->buildUpdatedSpan($span_data, $messages, $prepared_messages, ['output_tokens' => $encoder->encode(implode('', $prepared_messages))]);
     $this->queue->get('ai_chat_langfuse_queue')->createItem($span_data);
 
     return $prepared_messages;
@@ -200,6 +210,12 @@ final class AiChatService {
    *   The JSON response.
    */
   public function getOpenAiResponse(array $messages, string $trace_id): JsonResponse {
+    $config = $this->configFactory->get('ai_chat.settings');
+    $chat_model = $config->get('openai_chat_model');
+
+    $provider = new EncoderProvider();
+    $encoder = $provider->getForModel($chat_model);
+
     $config = $this->configFactory->get('ai_chat.settings');
     $chat_model = $config->get('openai_chat_model');
     $max_tokens = $config->get('openai_max_completion_tokens');
@@ -243,7 +259,7 @@ final class AiChatService {
     );
     $this->queue->get('ai_chat_langfuse_queue')->createItem($generation_data);
 
-    $openai_span_data = $this->langfuse->buildUpdateSpan($openai_span_data, $messages, $response_data);
+    $openai_span_data = $this->langfuse->buildUpdatedSpan($openai_span_data, $messages, $response_data, ['input_tokens' => $encoder->encode(implode('', $messages)), 'output_tokens' => $encoder->encode(implode('', $response_data))]);
     $this->queue->get('ai_chat_langfuse_queue')->createItem($openai_span_data);
 
     return new JsonResponse($response_data);
