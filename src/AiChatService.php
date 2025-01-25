@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\ai_chat;
 
+use Drupal\ai_chat\Event\ObservabilityGenerationEvent;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -14,8 +15,8 @@ use Qdrant\Models\Request\SearchRequest;
 use Qdrant\Models\VectorStruct;
 use Qdrant\Qdrant;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Yethee\Tiktoken\EncoderProvider;
 
 /**
  * Defines the AiChatService class.
@@ -27,10 +28,10 @@ final class AiChatService {
   public function __construct(
     #[Autowire(service: 'config.factory')]
     protected ConfigFactoryInterface $configFactory,
-    #[Autowire(service: 'ai_chat.langfuse_service')]
-    protected LangfuseService $langfuse,
     #[Autowire(service: 'queue')]
     protected QueueFactory $queue,
+    #[Autowire(service: 'event_dispatcher')]
+    protected EventDispatcherInterface $eventDispatcher,
   ) {}
 
   /**
@@ -90,22 +91,11 @@ final class AiChatService {
    *
    * @param array $messages
    *   The chat messages.
-   * @param string $trace_id
-   *   The trace ID.
    *
    * @return string
    *   The retrieved context.
    */
-  public function retrieveContext(array $messages, string $trace_id): string {
-    $config = $this->configFactory->get('ai_chat.settings');
-    $chat_model = $config->get('openai_chat_model');
-
-    $provider = new EncoderProvider();
-    $encoder = $provider->getForModel($chat_model);
-
-    $span_data = $this->langfuse->buildSpanData($trace_id, 'retrieve_context');
-    $span_id = $span_data['id'];
-
+  public function retrieveContext(array $messages): string {
     $config = $this->configFactory->get('ai_chat.settings');
     $combined_messages_count = (int) $config->get('combined_messages_count');
 
@@ -122,12 +112,7 @@ final class AiChatService {
     }, $recent_messages));
 
     // Get embedding for the combined messages.
-    $embedding_span_data = $this->langfuse->buildSpanData($trace_id, 'get_embedding', $span_id);
     $content_embedding = $this->getEmbeddingForData($combined_content);
-    $embedding_span_data = $this->langfuse->buildUpdatedSpan($embedding_span_data, $combined_content, $content_embedding, ['input_tokens' => $encoder->encode($combined_content)]);
-    $this->queue->get('ai_chat_langfuse_queue')->createItem($embedding_span_data);
-
-    $qdrant_span_data = $this->langfuse->buildSpanData($trace_id, 'qdrant_search', $span_id);
     $top_k = (int) $config->get('top_k');
     $search_request = (new SearchRequest(new VectorStruct($content_embedding, 'content')))
       ->setLimit($top_k)
@@ -148,14 +133,7 @@ final class AiChatService {
       $context[] = $item['payload']['text'];
     }
 
-    $result = implode("\n", $context);
-    $qdrant_span_data = $this->langfuse->buildUpdatedSpan($qdrant_span_data, $content_embedding, $result, ['output_tokens' => $encoder->encode($result)]);
-    $this->queue->get('ai_chat_langfuse_queue')->createItem($qdrant_span_data);
-
-    $span_data = $this->langfuse->buildUpdatedSpan($span_data);
-    $this->queue->get('ai_chat_langfuse_queue')->createItem($span_data);
-
-    return $result;
+    return implode("\n", $context);
   }
 
   /**
@@ -165,21 +143,11 @@ final class AiChatService {
    *   The original messages.
    * @param string $context
    *   The retrieved context.
-   * @param string $trace_id
-   *   The trace ID.
    *
    * @return array
    *   The prepared messages.
    */
-  public function prepareMessages(array $messages, string $context, string $trace_id): array {
-    $config = $this->configFactory->get('ai_chat.settings');
-    $chat_model = $config->get('openai_chat_model');
-
-    $provider = new EncoderProvider();
-    $encoder = $provider->getForModel($chat_model);
-
-    $span_data = $this->langfuse->buildSpanData($trace_id, 'prepare_messages');
-
+  public function prepareMessages(array $messages, string $context): array {
     $config = $this->configFactory->get('ai_chat.settings');
     $system_instructions = $config->get('openai_system_instructions');
 
@@ -190,12 +158,7 @@ final class AiChatService {
     ];
 
     // Return all messages with the system message at the start.
-    $prepared_messages = array_merge([$system_message], $messages);
-
-    $span_data = $this->langfuse->buildUpdatedSpan($span_data, $messages, $prepared_messages, ['output_tokens' => $encoder->encode(implode('', $prepared_messages))]);
-    $this->queue->get('ai_chat_langfuse_queue')->createItem($span_data);
-
-    return $prepared_messages;
+    return array_merge([$system_message], $messages);
   }
 
   /**
@@ -211,36 +174,28 @@ final class AiChatService {
    */
   public function getOpenAiResponse(array $messages, string $trace_id): JsonResponse {
     $config = $this->configFactory->get('ai_chat.settings');
-    $chat_model = $config->get('openai_chat_model');
-
-    $provider = new EncoderProvider();
-    $encoder = $provider->getForModel($chat_model);
-
-    $config = $this->configFactory->get('ai_chat.settings');
-    $chat_model = $config->get('openai_chat_model');
+    $model = $config->get('openai_chat_model');
     $max_tokens = $config->get('openai_max_completion_tokens');
     $temperature = $config->get('openai_temperature');
 
-    $openai_span_data = $this->langfuse->buildSpanData($trace_id, 'openai_request');
-    $openai_span_id = $openai_span_data['id'];
     $datetime = new \DateTime();
-    $start_time = $datetime->format(LangfuseService::DATE_FORMAT);
+    $start_time = $datetime->format('c');
     $response = $this->getOpenAiClient()->chat()->create([
-      'model' => $chat_model,
+      'model' => $model,
       'messages' => $messages,
       'max_tokens' => (int) $max_tokens,
       'temperature' => (float) $temperature,
     ]);
-    $end_time = $datetime->format(LangfuseService::DATE_FORMAT);
+    $end_time = $datetime->format('c');
 
     $response_data = [
       'role' => 'assistant',
       'content' => $response->choices[0]->message->content,
     ];
 
-    $generation_data = $this->langfuse->buildGenerationData(
-      $trace_id,
+    $observability_trace_event = new ObservabilityGenerationEvent(
       'chat_completion',
+      $trace_id,
       $messages,
       $response_data,
       [
@@ -250,17 +205,13 @@ final class AiChatService {
       ],
       $start_time,
       $end_time,
-      $chat_model,
+      $model,
       [
         'max_tokens' => $max_tokens,
         'temperature' => $temperature,
       ],
-      $openai_span_id,
     );
-    $this->queue->get('ai_chat_langfuse_queue')->createItem($generation_data);
-
-    $openai_span_data = $this->langfuse->buildUpdatedSpan($openai_span_data, $messages, $response_data, ['input_tokens' => $encoder->encode(implode('', $messages)), 'output_tokens' => $encoder->encode(implode('', $response_data))]);
-    $this->queue->get('ai_chat_langfuse_queue')->createItem($openai_span_data);
+    $this->eventDispatcher->dispatch($observability_trace_event, ObservabilityGenerationEvent::OBSERVABILITY_GENERATION);
 
     return new JsonResponse($response_data);
   }

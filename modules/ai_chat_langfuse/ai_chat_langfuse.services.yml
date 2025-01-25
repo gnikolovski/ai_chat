@@ -1,0 +1,10 @@
+services:
+  ai_chat_langfuse.langfuse_service:
+    class: Drupal\ai_chat_langfuse\LangfuseService
+    autowire: true
+
+  ai_chat_langfuse.log_subscriber:
+    class: Drupal\ai_chat_langfuse\EventSubscriber\ObservabilitySubscriber
+    autowire: true
+    tags:
+      - { name: event_subscriber }

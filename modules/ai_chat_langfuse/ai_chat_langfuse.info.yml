@@ -1,0 +1,5 @@
+name: 'AI chat - Langfuse integration'
+type: module
+description: 'Provides integration with Langfuse.'
+package: AI
+core_version_requirement: ^10 || ^11
