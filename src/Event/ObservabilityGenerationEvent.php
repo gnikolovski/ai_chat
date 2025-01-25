@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\ai_chat\Event;
 
 use Symfony\Contracts\EventDispatcher\Event;
@@ -7,7 +9,7 @@ use Symfony\Contracts\EventDispatcher\Event;
 /**
  * Event class for observability generation event.
  */
-class ObservabilityGenerationEvent extends Event {
+final class ObservabilityGenerationEvent extends Event {
 
   /**
    * The event name.

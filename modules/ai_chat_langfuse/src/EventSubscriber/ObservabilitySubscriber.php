@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\ai_chat_langfuse\EventSubscriber;
 
 use Drupal\ai_chat\Event\ObservabilityGenerationEvent;
@@ -12,13 +14,10 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 /**
  * Defines the ObservabilitySubscriber class.
  */
-class ObservabilitySubscriber implements EventSubscriberInterface {
+final class ObservabilitySubscriber implements EventSubscriberInterface {
 
   /**
    * Constructs a ObservabilitySubscriber object.
-   *
-   * @param \Drupal\ai_chat_langfuse\LangfuseService $langfuseService
-   *   The langfuse service.
    */
   public function __construct(
     #[Autowire(service: 'ai_chat_langfuse.langfuse_service')]

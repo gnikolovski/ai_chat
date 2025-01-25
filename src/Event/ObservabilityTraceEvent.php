@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\ai_chat\Event;
 
 use Symfony\Contracts\EventDispatcher\Event;
@@ -7,7 +9,7 @@ use Symfony\Contracts\EventDispatcher\Event;
 /**
  * Event class for observability trace event.
  */
-class ObservabilityTraceEvent extends Event {
+final class ObservabilityTraceEvent extends Event {
 
   /**
    * The event name.
@@ -85,4 +87,5 @@ class ObservabilityTraceEvent extends Event {
   public function getUserAgent(): string {
     return $this->userAgent;
   }
+
 }

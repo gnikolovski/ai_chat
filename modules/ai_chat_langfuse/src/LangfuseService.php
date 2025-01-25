@@ -76,8 +76,12 @@ final class LangfuseService {
    *
    * @param string $name
    *   The name of the trace.
+   * @param string $trace_id
+   *   The ID of the trace.
    * @param array $metadata
-   *   Optional metadata to attach to the trace.
+   *   Metadata to attach to the trace.
+   * @param ?string $user_id
+   *   Optional user ID to attach to the trace.
    *
    * @return array
    *   The trace data.
@@ -127,8 +131,6 @@ final class LangfuseService {
    *   The name of the AI model used.
    * @param array $model_params
    *   The model params.
-   * @param string|null $parent_id
-   *   Optional ID of the parent observation.
    *
    * @return array
    *   The generation data.
@@ -181,7 +183,7 @@ final class LangfuseService {
     $config = $this->getLangfuseConfig();
 
     try {
-      $res = $this->httpClient->request('POST', $config['base_url'] . '/api/public/ingestion', [
+      $response = $this->httpClient->request('POST', $config['base_url'] . '/api/public/ingestion', [
         'headers' => [
           'Authorization' => 'Basic ' . base64_encode($config['public_key'] . ':' . $config['secret_key']),
           'Content-Type' => 'application/json',
@@ -190,8 +192,7 @@ final class LangfuseService {
           'batch' => $events,
         ],
       ]);
-      $this->loggerFactory->get('ai_chat:sendEvent')->debug((string) $res->getStatusCode());
-      $this->loggerFactory->get('ai_chat:sendEvent')->debug($res->getBody()->getContents());
+      $this->loggerFactory->get('ai_chat:sendEvent')->debug($response->getBody()->getContents());
     }
     catch (\Exception $e) {
       $this->loggerFactory->get('ai_chat:sendEvent')->error('Something went wrong while sending data to Langfuse. Error: @error', [

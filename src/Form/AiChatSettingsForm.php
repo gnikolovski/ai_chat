@@ -10,7 +10,7 @@ use Drupal\Core\Form\FormStateInterface;
 /**
  * Defines the AiChatSettingsForm class.
  */
-class AiChatSettingsForm extends ConfigFormBase {
+final class AiChatSettingsForm extends ConfigFormBase {
 
   /**
    * {@inheritDoc}
