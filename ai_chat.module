@@ -37,10 +37,26 @@ function ai_chat_page_attachments(array &$attachments): void {
     ],
     'ai_chat_script',
   ];
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function ai_chat_page_bottom(array &$page_bottom): void {
+  /** @var \Drupal\Core\Routing\AdminContext $admin_context */
+  $admin_context = \Drupal::service('router.admin_context');
+  if ($admin_context->isAdminRoute() === TRUE) {
+    return;
+  }
+
+  $current_user = \Drupal::currentUser();
+  if ($current_user->hasPermission('access ai chat') === FALSE) {
+    return;
+  }
 
   $module_path = \Drupal::service('extension.list.module')->getPath('ai_chat');
 
-  $attachments['#attached']['html_head'][] = [
+  $page_bottom['ai_chat'] = [
     [
       '#type' => 'inline_template',
       '#template' => '
@@ -48,7 +64,7 @@ function ai_chat_page_attachments(array &$attachments): void {
           <div class="ai-chat-header">
             <span class="ai-chat-title" title="{{ ai_chat_hint }}"><span class="ai-chat-bullet"></span> {{ ai_chat_title }}</span>
             <button class="ai-chat-toggle">
-              <img src="/' . $module_path . '/icons/chevron-up.png" alt="Toggle chat" height="16" width="16" class="ai-chat-icon">
+              <img src="/' . $module_path . '/icons/chevron-up.png" alt="Toggle chat" height="16" width="16" class="ai-chat-icon" />
             </button>
           </div>
           <div class="ai-chat-window">
@@ -73,6 +89,8 @@ function ai_chat_page_attachments(array &$attachments): void {
         'intro_message' => t('Hi, I am your AI Assistant, here to help you explore articles, code snippets, and everything about the site and the author!'),
       ],
     ],
-    'ai_chat_window',
+    '#cache' => [
+      'contexts' => ['user.permissions'],
+    ],
   ];
 }
