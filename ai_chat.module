@@ -8,22 +8,48 @@
 declare(strict_types=1);
 
 /**
- * Implements hook_page_attachments().
+ * Checks if AI chat should be accessible for the current request.
  */
-function ai_chat_page_attachments(array &$attachments): void {
+function _ai_chat_is_accessible(): bool {
   /** @var \Drupal\Core\Routing\AdminContext $admin_context */
   $admin_context = \Drupal::service('router.admin_context');
   if ($admin_context->isAdminRoute() === TRUE) {
+    return FALSE;
+  }
+
+  /** @var \Drupal\Core\Routing\RouteMatchInterface $route_match */
+  $route_match = \Drupal::routeMatch();
+  $route_name = $route_match->getRouteName();
+
+  // Exclude user-related routes.
+  $excluded_routes = [
+    'user.login',
+    'user.register',
+    'user.pass',
+    'user.reset',
+    'user.reset.login',
+    'user.reset.form',
+    'entity.user.canonical',
+    'entity.user.edit_form',
+  ];
+
+  if (in_array($route_name, $excluded_routes, TRUE)) {
+    return FALSE;
+  }
+
+  $current_user = \Drupal::currentUser();
+  return $current_user->hasPermission('access ai chat');
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function ai_chat_page_attachments(array &$attachments): void {
+  if (!_ai_chat_is_accessible()) {
     return;
   }
 
   $attachments['#cache']['contexts'][] = 'user.roles';
-
-  $current_user = \Drupal::currentUser();
-  if ($current_user->hasPermission('access ai chat') === FALSE) {
-    return;
-  }
-
   $attachments['#attached']['library'][] = 'ai_chat/chat-toggle';
 
   $attachments['#attached']['html_head'][] = [
@@ -43,14 +69,7 @@ function ai_chat_page_attachments(array &$attachments): void {
  * Implements hook_page_attachments().
  */
 function ai_chat_page_bottom(array &$page_bottom): void {
-  /** @var \Drupal\Core\Routing\AdminContext $admin_context */
-  $admin_context = \Drupal::service('router.admin_context');
-  if ($admin_context->isAdminRoute() === TRUE) {
-    return;
-  }
-
-  $current_user = \Drupal::currentUser();
-  if ($current_user->hasPermission('access ai chat') === FALSE) {
+  if (!_ai_chat_is_accessible()) {
     return;
   }
 
