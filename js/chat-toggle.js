@@ -7,7 +7,8 @@
         const header = container.querySelector('.ai-chat-header');
         const window = container.querySelector('.ai-chat-window');
         const icon = container.querySelector('.ai-chat-icon');
-        const is_visible = localStorage.getItem('aiChatVisible') !== 'false';
+        const is_visible = localStorage.getItem('aiChatVisible') === 'true';
+
         if (is_visible) {
           window.classList.add('is-open');
           icon.style.transform = 'rotate(180deg)';
@@ -16,11 +17,13 @@
           window.classList.remove('is-open');
           icon.style.transform = 'rotate(0deg)';
         }
+
         header.addEventListener('click', function() {
           const is_open = window.classList.toggle('is-open');
           icon.style.transform = is_open ? 'rotate(180deg)' : 'rotate(0deg)';
           localStorage.setItem('aiChatVisible', String(is_open));
         });
+
         document.addEventListener('keydown', function(event) {
           if (
             (event.key === 'Escape' || (event.ctrlKey && event.key === '/')) &&
