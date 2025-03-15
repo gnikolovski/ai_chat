@@ -60,7 +60,6 @@
 .ai-chat-window {
   height: 0;
   opacity: 0;
-  overflow: hidden;
   background: white;
   border-radius: 8px;
   margin-top: 8px;
