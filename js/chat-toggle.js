@@ -7,16 +7,18 @@
         const header = container.querySelector('.ai-chat-header');
         const window = container.querySelector('.ai-chat-window');
         const icon = container.querySelector('.ai-chat-icon');
-        const is_visible = localStorage.getItem('aiChatVisible') === 'true';
 
+        // Set initial state before DOM is fully loaded to prevent jumps.
+        const is_visible = localStorage.getItem('aiChatVisible') === 'true';
         if (is_visible) {
           window.classList.add('is-open');
           icon.style.transform = 'rotate(180deg)';
         }
-        else {
-          window.classList.remove('is-open');
-          icon.style.transform = 'rotate(0deg)';
-        }
+
+        // Ensure smooth transitions by waiting for DOM content.
+        document.addEventListener('DOMContentLoaded', function() {
+          window.style.visibility = 'visible';
+        });
 
         header.addEventListener('click', function() {
           const is_open = window.classList.toggle('is-open');

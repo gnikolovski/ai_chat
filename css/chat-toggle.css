@@ -58,19 +58,27 @@
 }
 
 .ai-chat-window {
-  display: none;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
   background: white;
   border-radius: 8px;
   margin-top: 8px;
+  transition: opacity 0.3s ease;
 }
 
 .ai-chat-window.is-open {
-  display: block;
+  height: auto;
+  opacity: 1;
+}
+
+.ai-chat-window deep-chat {
+  height: 0;
+  transition: height 0.3s ease;
 }
 
 .ai-chat-window.is-open deep-chat {
   height: 50vh !important;
-  transition: height 0.3s ease;
 }
 
 @media screen and (max-width: 992px) {
