@@ -8,11 +8,8 @@ use Drupal\ai_chat\Event\ObservabilityGenerationEvent;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use OpenAI\Client;
-use Qdrant\Config;
-use Qdrant\Http\Builder;
-use Qdrant\Models\Request\SearchRequest;
-use Qdrant\Models\VectorStruct;
+use OpenAI\Contracts\ClientContract;
+use Qdrant\Models\Request\Points\QueryRequest;
 use Qdrant\Qdrant;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
@@ -32,6 +29,10 @@ final class AiChatService {
     protected QueueFactory $queue,
     #[Autowire(service: 'event_dispatcher')]
     protected EventDispatcherInterface $eventDispatcher,
+    #[Autowire(service: 'ai_chat.qdrant_client_factory')]
+    protected QdrantClientFactory $qdrantClientFactory,
+    #[Autowire(service: 'ai_chat.openai_client_factory')]
+    protected OpenAiClientFactory $openAiClientFactory,
   ) {}
 
   /**
@@ -55,7 +56,7 @@ final class AiChatService {
     $config = $this->configFactory->get('ai_chat.settings');
 
     if ($qdrant_host === NULL) {
-      $qdrant_host = $config->get('qdrant_host');
+      $qdrant_host = (string) $config->get('qdrant_host');
     }
 
     if ($qdrant_port === NULL) {
@@ -63,27 +64,23 @@ final class AiChatService {
     }
 
     if ($qdrant_api_key === NULL) {
-      $qdrant_api_key = $config->get('qdrant_api_key');
+      $qdrant_api_key = (string) $config->get('qdrant_api_key');
     }
 
-    $qdrant_config = new Config($qdrant_host, $qdrant_port);
-    $qdrant_config->setApiKey($qdrant_api_key);
-
-    $transport = (new Builder())->build($qdrant_config);
-    return new Qdrant($transport);
+    return $this->qdrantClientFactory->create($qdrant_host, $qdrant_port, $qdrant_api_key);
   }
 
   /**
    * Gets the OpenAI client.
    *
-   * @return \OpenAI\Client
+   * @return \OpenAI\Contracts\ClientContract
    *   The OpenAI client.
    */
-  protected function getOpenAiClient(): Client {
+  protected function getOpenAiClient(): ClientContract {
     $config = $this->configFactory->get('ai_chat.settings');
-    $api_key = $config->get('openai_api_key');
+    $api_key = (string) $config->get('openai_api_key');
     $organization_id = $config->get('openai_organization_id');
-    return \OpenAI::client($api_key, $organization_id);
+    return $this->openAiClientFactory->create($api_key, $organization_id ?: NULL);
   }
 
   /**
@@ -114,7 +111,11 @@ final class AiChatService {
     // Get embedding for the combined messages.
     $content_embedding = $this->getEmbeddingForData($combined_content);
     $top_k = (int) $config->get('top_k');
-    $search_request = (new SearchRequest(new VectorStruct($content_embedding, 'content')))
+    // The universal query endpoint replaced the search endpoint, which Qdrant
+    // deprecated. A bare vector under 'nearest' is the same similarity search.
+    $query_request = (new QueryRequest())
+      ->setQuery(['nearest' => $content_embedding])
+      ->setUsing('content')
       ->setLimit($top_k)
       ->setParams([
         'hnsw_ef' => 128,
@@ -123,13 +124,14 @@ final class AiChatService {
       ->setWithPayload(TRUE);
 
     $client = $this->getQdrantClient();
-    $qdrant_collection_name = $config->get('qdrant_collection_name');
+    $qdrant_collection_name = (string) $config->get('qdrant_collection_name');
     $response = $client->collections($qdrant_collection_name)
       ->points()
-      ->search($search_request);
+      ->query()
+      ->query($query_request);
 
     $context = [];
-    foreach ($response['result'] as $item) {
+    foreach ($response['result']['points'] ?? [] as $item) {
       $context[] = $item['payload']['text'];
     }
 

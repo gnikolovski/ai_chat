@@ -19,8 +19,8 @@
     "minimum-stability": "dev",
     "require": {
         "drupal/core": "^10 || ^11",
-        "hkulekci/qdrant": "^0.5.8",
-        "openai-php/client": "^0.10.3",
-        "php": ">=8.1"
+        "hkulekci/qdrant": "^1.0",
+        "openai-php/client": "^0.20",
+        "php": ">=8.2"
     }
 }

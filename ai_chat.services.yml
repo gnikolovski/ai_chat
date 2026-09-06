@@ -6,3 +6,9 @@ services:
   ai_chat.ai_chat_service:
     class: Drupal\ai_chat\AiChatService
     autowire: true
+
+  ai_chat.qdrant_client_factory:
+    class: Drupal\ai_chat\QdrantClientFactory
+
+  ai_chat.openai_client_factory:
+    class: Drupal\ai_chat\OpenAiClientFactory
