@@ -9,6 +9,7 @@ use Drupal\ai_chat\Event\ObservabilityTraceEvent;
 use Drupal\ai_chat_langfuse\EventSubscriber\ObservabilitySubscriber;
 use Drupal\ai_chat_langfuse\LangfuseService;
 use Drupal\Component\Uuid\UuidInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Queue\QueueInterface;
@@ -32,8 +33,22 @@ final class ObservabilitySubscriberTest extends UnitTestCase {
 
   /**
    * The items queued for Langfuse, in order.
+   *
+   * @var array<int, array<string, mixed>>
    */
   private array $queued = [];
+
+  /**
+   * Builds the config factory, typed so the service constructor accepts it.
+   *
+   * @param array<string, array<string, mixed>> $configs
+   *   The config objects keyed by name.
+   */
+  private function configFactory(array $configs): ConfigFactoryInterface {
+    $config_factory = $this->getConfigFactoryStub($configs);
+    assert($config_factory instanceof ConfigFactoryInterface);
+    return $config_factory;
+  }
 
   /**
    * Builds the subscriber with a recording queue.
@@ -47,7 +62,7 @@ final class ObservabilitySubscriberTest extends UnitTestCase {
     $tempstore_factory->method('get')->willReturn($tempstore);
 
     $langfuse = new LangfuseService(
-      $this->getConfigFactoryStub(['ai_chat.settings' => []]),
+      $this->configFactory(['ai_chat.settings' => []]),
       $this->createMock(ClientInterface::class),
       $uuid,
       $this->createMock(AccountProxyInterface::class),

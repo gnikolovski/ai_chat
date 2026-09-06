@@ -8,6 +8,7 @@ use Drupal\ai_chat\AiChatService;
 use Drupal\ai_chat\Event\ObservabilityGenerationEvent;
 use Drupal\ai_chat\OpenAiClientFactory;
 use Drupal\ai_chat\QdrantClientFactory;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Tests\UnitTestCase;
 use GuzzleHttp\Psr7\Response as HttpResponse;
@@ -56,13 +57,42 @@ final class AiChatServiceTest extends UnitTestCase {
   private array $qdrantRequests = [];
 
   /**
+   * Encodes a JSON body, failing the test instead of returning false.
+   *
+   * @param array<mixed> $data
+   *   The data to encode.
+   */
+  private static function json(array $data): string {
+    return json_encode($data, JSON_THROW_ON_ERROR);
+  }
+
+  /**
+   * Builds the config factory, typed so the service constructor accepts it.
+   *
+   * @param array<string, array<string, mixed>> $configs
+   *   The config objects keyed by name.
+   */
+  private function configFactory(array $configs): ConfigFactoryInterface {
+    $config_factory = $this->getConfigFactoryStub($configs);
+    assert($config_factory instanceof ConfigFactoryInterface);
+    return $config_factory;
+  }
+
+  /**
    * Builds the service with a fake OpenAI client and a canned Qdrant result.
+   *
+   * @param \OpenAI\Testing\ClientFake $openai
+   *   The fake OpenAI client.
+   * @param array<string, mixed> $qdrant_result
+   *   The 'result' every Qdrant reply carries.
+   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface|null $dispatcher
+   *   The event dispatcher, a silent mock when omitted.
    */
   private function createService(ClientFake $openai, array $qdrant_result = [], ?EventDispatcherInterface $dispatcher = NULL): AiChatService {
     $transport = $this->createMock(Transport::class);
     $transport->method('sendRequest')->willReturnCallback(function (RequestInterface $request) use ($qdrant_result): HttpResponse {
       $this->qdrantRequests[] = $request;
-      return new HttpResponse(200, ['content-type' => 'application/json'], json_encode([
+      return new HttpResponse(200, ['content-type' => 'application/json'], self::json([
         'status' => 'ok',
         'result' => $qdrant_result,
       ]));
@@ -79,7 +109,7 @@ final class AiChatServiceTest extends UnitTestCase {
       ->willReturn($openai);
 
     return new AiChatService(
-      $this->getConfigFactoryStub(self::SETTINGS),
+      $this->configFactory(self::SETTINGS),
       $this->createMock(QueueFactory::class),
       $dispatcher ?? $this->createMock(EventDispatcherInterface::class),
       $qdrant_factory,

@@ -6,6 +6,7 @@ namespace Drupal\Tests\ai_chat_langfuse\Unit;
 
 use Drupal\ai_chat_langfuse\LangfuseService;
 use Drupal\Component\Uuid\UuidInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -17,6 +18,7 @@ use GuzzleHttp\Exception\TransferException;
 use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\MockObject\MockObject;
 
 /**
  * Tests the Langfuse event payloads and the ingestion call.
@@ -36,17 +38,29 @@ final class LangfuseServiceTest extends UnitTestCase {
   /**
    * The HTTP client the ingestion call goes through.
    */
-  private ClientInterface $httpClient;
+  private ClientInterface&MockObject $httpClient;
 
   /**
    * The visitor's private tempstore.
    */
-  private PrivateTempStore $tempstore;
+  private PrivateTempStore&MockObject $tempstore;
 
   /**
    * The logger channel the service writes to.
    */
-  private LoggerChannelInterface $logger;
+  private LoggerChannelInterface&MockObject $logger;
+
+  /**
+   * Builds the config factory, typed so the service constructor accepts it.
+   *
+   * @param array<string, array<string, mixed>> $configs
+   *   The config objects keyed by name.
+   */
+  private function configFactory(array $configs): ConfigFactoryInterface {
+    $config_factory = $this->getConfigFactoryStub($configs);
+    assert($config_factory instanceof ConfigFactoryInterface);
+    return $config_factory;
+  }
 
   /**
    * Builds the service with a tempstore that holds the given session id.
@@ -67,7 +81,7 @@ final class LangfuseServiceTest extends UnitTestCase {
     $tempstore_factory->method('get')->with('ai_chat')->willReturn($this->tempstore);
 
     return new LangfuseService(
-      $this->getConfigFactoryStub(self::SETTINGS),
+      $this->configFactory(self::SETTINGS),
       $this->httpClient,
       $uuid,
       $this->createMock(AccountProxyInterface::class),
@@ -80,7 +94,8 @@ final class LangfuseServiceTest extends UnitTestCase {
    * Asserts a timestamp is the ISO 8601 form Langfuse expects.
    */
   private function assertIsIso8601(string $timestamp): void {
-    $this->assertInstanceOf(\DateTimeImmutable::class, \DateTimeImmutable::createFromFormat(LangfuseService::DATE_FORMAT, $timestamp), "Not an ISO 8601 timestamp: $timestamp");
+    // 'c' is an output-only format, so parse with its ATOM equivalent.
+    $this->assertInstanceOf(\DateTimeImmutable::class, \DateTimeImmutable::createFromFormat(\DateTimeInterface::ATOM, $timestamp), "Not an ISO 8601 timestamp: $timestamp");
   }
 
   /**

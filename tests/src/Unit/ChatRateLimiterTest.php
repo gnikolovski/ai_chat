@@ -11,6 +11,7 @@ use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Tests\UnitTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -27,12 +28,12 @@ final class ChatRateLimiterTest extends UnitTestCase {
   /**
    * The cache backend that holds the per-IP window.
    */
-  private CacheBackendInterface $cache;
+  private CacheBackendInterface&MockObject $cache;
 
   /**
    * The logger channel the limiter writes to.
    */
-  private LoggerChannelInterface $logger;
+  private LoggerChannelInterface&MockObject $logger;
 
   /**
    * Builds the limiter for a request from the fixed IP.
@@ -51,6 +52,9 @@ final class ChatRateLimiterTest extends UnitTestCase {
 
   /**
    * Checks that a cache write starts or extends the one-minute window.
+   *
+   * @param array{count: int} $data
+   *   The window data the write has to carry.
    */
   private function expectWindowWrite(array $data): void {
     $before = time();

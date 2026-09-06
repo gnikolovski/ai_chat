@@ -13,10 +13,13 @@ use Drupal\ai_chat\OpenAiClientFactory;
 use Drupal\ai_chat\QdrantClientFactory;
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Tests\UnitTestCase;
 use GuzzleHttp\Psr7\Response as HttpResponse;
 use OpenAI\Resources\Chat;
@@ -74,6 +77,28 @@ final class AiChatControllerTest extends UnitTestCase {
   private array $events = [];
 
   /**
+   * Encodes a JSON body, failing the test instead of returning false.
+   *
+   * @param array<mixed> $data
+   *   The data to encode.
+   */
+  private static function json(array $data): string {
+    return json_encode($data, JSON_THROW_ON_ERROR);
+  }
+
+  /**
+   * Builds the config factory, typed so the service constructor accepts it.
+   *
+   * @param array<string, array<string, mixed>> $configs
+   *   The config objects keyed by name.
+   */
+  private function configFactory(array $configs): ConfigFactoryInterface {
+    $config_factory = $this->getConfigFactoryStub($configs);
+    assert($config_factory instanceof ConfigFactoryInterface);
+    return $config_factory;
+  }
+
+  /**
    * Builds the controller.
    *
    * @param \OpenAI\Responses\Chat\CreateResponse[]|\OpenAI\Responses\Embeddings\CreateResponse[] $openai_responses
@@ -87,7 +112,7 @@ final class AiChatControllerTest extends UnitTestCase {
     $openai_factory->method('create')->willReturn($this->openai);
 
     $transport = $this->createMock(Transport::class);
-    $transport->method('sendRequest')->willReturn(new HttpResponse(200, ['content-type' => 'application/json'], json_encode([
+    $transport->method('sendRequest')->willReturn(new HttpResponse(200, ['content-type' => 'application/json'], self::json([
       'status' => 'ok',
       'result' => ['points' => [['id' => 'a', 'score' => 0.9, 'payload' => ['text' => 'Context chunk']]]],
     ])));
@@ -100,7 +125,7 @@ final class AiChatControllerTest extends UnitTestCase {
       return $event;
     });
 
-    $config_factory = $this->getConfigFactoryStub(self::SETTINGS);
+    $config_factory = $this->configFactory(self::SETTINGS);
     $queue = $this->createMock(QueueFactory::class);
     $service = new AiChatService($config_factory, $queue, $dispatcher, $qdrant_factory, $openai_factory);
 
@@ -108,7 +133,9 @@ final class AiChatControllerTest extends UnitTestCase {
     $cache->method('get')->willReturn($requests_in_window > 0 ? (object) ['data' => ['count' => $requests_in_window]] : FALSE);
     $request_stack = new RequestStack();
     $request_stack->push($this->createRequest(''));
-    $rate_limiter = new ChatRateLimiter($cache, $request_stack, $this->createMock(LoggerChannelFactoryInterface::class));
+    $logger_factory = $this->createMock(LoggerChannelFactoryInterface::class);
+    $logger_factory->method('get')->willReturn($this->createMock(LoggerChannelInterface::class));
+    $rate_limiter = new ChatRateLimiter($cache, $request_stack, $logger_factory);
 
     $uuid = $this->createMock(UuidInterface::class);
     $uuid->method('generate')->willReturn('trace-1');
@@ -117,11 +144,13 @@ final class AiChatControllerTest extends UnitTestCase {
     $current_user->method('id')->willReturn(1);
     $container = new ContainerBuilder();
     $container->set('current_user', $current_user);
-    $container->set('string_translation', $this->getStringTranslationStub());
+    $translation = $this->getStringTranslationStub();
+    assert($translation instanceof TranslationInterface);
+    $container->set('string_translation', $translation);
     \Drupal::setContainer($container);
 
     $controller = new AiChatController($service, $rate_limiter, $queue, $dispatcher, $uuid);
-    $controller->setStringTranslation($this->getStringTranslationStub());
+    $controller->setStringTranslation($translation);
     return $controller;
   }
 
@@ -144,7 +173,7 @@ final class AiChatControllerTest extends UnitTestCase {
       ChatResponse::fake(['choices' => [['message' => ['content' => 'The answer']]]]),
     ]);
 
-    $response = $controller->aiChat($this->createRequest(json_encode([
+    $response = $controller->aiChat($this->createRequest(self::json([
       'messages' => [
         ['role' => 'user', 'text' => 'Hello'],
         ['role' => 'assistant', 'html' => '<p>Hi</p>'],
@@ -184,7 +213,7 @@ final class AiChatControllerTest extends UnitTestCase {
   public function testRateLimitedRequestsAreAnsweredWithoutCallingOpenAi(): void {
     $controller = $this->createController([], ChatRateLimiter::REQUEST_COUNT_LIMIT);
 
-    $response = $controller->aiChat($this->createRequest(json_encode([
+    $response = $controller->aiChat($this->createRequest(self::json([
       'messages' => [['role' => 'user', 'text' => 'Hello']],
     ])));
 
@@ -218,7 +247,7 @@ final class AiChatControllerTest extends UnitTestCase {
     // No fake responses queued, so the first OpenAI call throws.
     $controller = $this->createController();
 
-    $response = $controller->aiChat($this->createRequest(json_encode([
+    $response = $controller->aiChat($this->createRequest(self::json([
       'messages' => [['role' => 'user', 'text' => 'Hello']],
     ])));
 
