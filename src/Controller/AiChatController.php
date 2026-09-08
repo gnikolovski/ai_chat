@@ -53,8 +53,8 @@ final class AiChatController extends ControllerBase {
         'chat_request',
         $trace_id,
         (string) $this->currentUser()->id(),
-        $request->getClientIp(),
-        $request->headers->get('User-Agent'),
+        $request->getClientIp() ?? '',
+        $request->headers->get('User-Agent') ?? '',
       );
       $this->eventDispatcher->dispatch($observability_trace_event, ObservabilityTraceEvent::OBSERVABILITY_TRACE);
 
@@ -93,7 +93,7 @@ final class AiChatController extends ControllerBase {
 
       $prepared_messages = $this->aiChatService->prepareMessages($messages, $context);
       $response = $this->aiChatService->getOpenAIResponse($prepared_messages, $trace_id);
-      $response_data = json_decode($response->getContent(), TRUE);
+      $response_data = json_decode((string) $response->getContent(), TRUE);
 
       // Transform the response back into Deep Chat format.
       return new JsonResponse([

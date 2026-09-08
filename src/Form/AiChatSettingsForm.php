@@ -14,6 +14,8 @@ final class AiChatSettingsForm extends ConfigFormBase {
 
   /**
    * {@inheritDoc}
+   *
+   * @phpstan-return array<int, string>
    */
   protected function getEditableConfigNames(): array {
     return [
@@ -30,6 +32,9 @@ final class AiChatSettingsForm extends ConfigFormBase {
 
   /**
    * {@inheritDoc}
+   *
+   * @phpstan-param array<string, mixed> $form
+   * @phpstan-return array<string, mixed>
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $config = $this->config('ai_chat.settings');
@@ -214,6 +219,8 @@ final class AiChatSettingsForm extends ConfigFormBase {
 
   /**
    * {@inheritDoc}
+   *
+   * @phpstan-param array<string, mixed> $form
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $config = $this->config('ai_chat.settings');

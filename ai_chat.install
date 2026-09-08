@@ -9,8 +9,10 @@ declare(strict_types=1);
 
 /**
  * Implements hook_requirements().
+ *
+ * @phpstan-return array<string, array<string, mixed>>
  */
-function ai_chat_requirements($phase): array {
+function ai_chat_requirements(string $phase): array {
   $requirements = [];
 
   if ($phase == 'runtime') {

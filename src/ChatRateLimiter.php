@@ -41,7 +41,7 @@ final class ChatRateLimiter {
    *   TRUE if request is allowed, FALSE if rate limit exceeded.
    */
   public function isAllowed(): bool {
-    $ip = $this->requestStack->getCurrentRequest()->getClientIp();
+    $ip = $this->requestStack->getCurrentRequest()?->getClientIp() ?? 'unknown';
     $cid = "ai_chat_rate_limit:$ip";
 
     if ($cache = $this->cache->get($cid)) {
@@ -50,7 +50,7 @@ final class ChatRateLimiter {
 
       if ($data['count'] > self::REQUEST_COUNT_LIMIT) {
         $this->loggerFactory->get('ai_chat:ChatRateLimiter')->error('Rate limit for user with IP Address: @ip_address exceeded.', [
-          '@ip_address' => $this->requestStack->getCurrentRequest()->getClientIp(),
+          '@ip_address' => $ip,
         ]);
         return FALSE;
       }

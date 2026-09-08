@@ -13,6 +13,8 @@ ai_chat.api:
     _format: json
   methods:  [POST]
   requirements:
+    # Public on purpose: the chat widget posts here for anonymous visitors.
+    # The controller applies the per-IP rate limit and validates the body.
     _access: 'TRUE'
   options:
     no_cache: TRUE

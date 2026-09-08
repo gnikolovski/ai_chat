@@ -23,6 +23,8 @@ final class LangfuseQueue extends QueueWorkerBase implements ContainerFactoryPlu
 
   /**
    * Constructs a new LangfuseQueue instance.
+   *
+   * @phpstan-param array<string, mixed> $configuration
    */
   public function __construct(
     array $configuration,
@@ -35,6 +37,8 @@ final class LangfuseQueue extends QueueWorkerBase implements ContainerFactoryPlu
 
   /**
    * {@inheritdoc}
+   *
+   * @phpstan-param array<string, mixed> $configuration
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): self {
     return new self(

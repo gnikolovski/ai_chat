@@ -86,7 +86,7 @@ final class AiChatService {
   /**
    * Retrieves relevant context using RAG.
    *
-   * @param array $messages
+   * @param array<int, array<string, mixed>> $messages
    *   The chat messages.
    *
    * @return string
@@ -141,12 +141,12 @@ final class AiChatService {
   /**
    * Prepares messages with context for OpenAI.
    *
-   * @param array $messages
+   * @param array<int, array<string, mixed>> $messages
    *   The original messages.
    * @param string $context
    *   The retrieved context.
    *
-   * @return array
+   * @return array<int, array<string, mixed>>
    *   The prepared messages.
    */
   public function prepareMessages(array $messages, string $context): array {
@@ -166,7 +166,7 @@ final class AiChatService {
   /**
    * Gets the response from OpenAI.
    *
-   * @param array $messages
+   * @param array<int, array<string, mixed>> $messages
    *   The prepared messages.
    * @param string $trace_id
    *   The trace ID.
@@ -201,9 +201,9 @@ final class AiChatService {
       $messages,
       $response_data,
       [
-        'prompt_tokens' => $response->usage->promptTokens,
-        'completion_tokens' => $response->usage->completionTokens,
-        'total_tokens' => $response->usage->totalTokens,
+        'prompt_tokens' => $response->usage?->promptTokens,
+        'completion_tokens' => $response->usage?->completionTokens,
+        'total_tokens' => $response->usage?->totalTokens,
       ],
       $start_time,
       $end_time,
@@ -224,7 +224,7 @@ final class AiChatService {
    * @param string $content
    *   The content.
    *
-   * @return array
+   * @return array<int, float>
    *   The embedding for provided content.
    */
   protected function getEmbeddingForData(string $content): array {

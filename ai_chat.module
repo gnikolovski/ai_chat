@@ -43,6 +43,8 @@ function _ai_chat_is_accessible(): bool {
 
 /**
  * Implements hook_page_attachments().
+ *
+ * @phpstan-param array<string, mixed> $attachments
  */
 function ai_chat_page_attachments(array &$attachments): void {
   if (!_ai_chat_is_accessible()) {
@@ -66,7 +68,9 @@ function ai_chat_page_attachments(array &$attachments): void {
 }
 
 /**
- * Implements hook_page_attachments().
+ * Implements hook_page_bottom().
+ *
+ * @phpstan-param array<string, mixed> $page_bottom
  */
 function ai_chat_page_bottom(array &$page_bottom): void {
   if (!_ai_chat_is_accessible()) {

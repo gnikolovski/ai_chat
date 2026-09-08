@@ -23,11 +23,11 @@ final class ObservabilityGenerationEvent extends Event {
    *   The name of the generation.
    * @param string $traceId
    *   The trace ID for the event.
-   * @param array $messages
+   * @param array<int, array<string, mixed>> $messages
    *   The messages associated with the event.
-   * @param array $responseData
+   * @param array<string, mixed> $responseData
    *   The response data from the generation.
-   * @param array $usage
+   * @param array<string, mixed> $usage
    *   The usage for the event.
    * @param string $startTime
    *   The start time of the generation.
@@ -35,7 +35,7 @@ final class ObservabilityGenerationEvent extends Event {
    *   The end time of the generation.
    * @param string $model
    *   The model used for the generation.
-   * @param array $modelParams
+   * @param array<string, mixed> $modelParams
    *   The parameters used for the model.
    */
   public function __construct(
@@ -73,7 +73,7 @@ final class ObservabilityGenerationEvent extends Event {
   /**
    * Gets the messages.
    *
-   * @return array
+   * @return array<int, array<string, mixed>>
    *   The messages.
    */
   public function getMessages(): array {
@@ -83,7 +83,7 @@ final class ObservabilityGenerationEvent extends Event {
   /**
    * Gets the response data.
    *
-   * @return array
+   * @return array<string, mixed>
    *   The response data.
    */
   public function getResponseData(): array {
@@ -93,7 +93,7 @@ final class ObservabilityGenerationEvent extends Event {
   /**
    * Gets the usage.
    *
-   * @return array
+   * @return array<string, mixed>
    *   The usage.
    */
   public function getUsage(): array {
@@ -133,7 +133,7 @@ final class ObservabilityGenerationEvent extends Event {
   /**
    * Gets the model parameters.
    *
-   * @return array
+   * @return array<string, mixed>
    *   The model parameters.
    */
   public function getModelParams(): array {

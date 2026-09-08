@@ -40,7 +40,7 @@ final class LangfuseService {
   /**
    * Gets Langfuse configuration from module settings.
    *
-   * @return array
+   * @return array<string, mixed>
    *   An array containing Langfuse configuration.
    */
   protected function getLangfuseConfig(): array {
@@ -78,12 +78,12 @@ final class LangfuseService {
    *   The name of the trace.
    * @param string $trace_id
    *   The ID of the trace.
-   * @param array $metadata
+   * @param array<string, mixed> $metadata
    *   Metadata to attach to the trace.
    * @param ?string $user_id
    *   Optional user ID to attach to the trace.
    *
-   * @return array
+   * @return array<string, mixed>
    *   The trace data.
    */
   public function buildTraceData(string $name, string $trace_id, array $metadata, ?string $user_id = NULL): array {
@@ -117,11 +117,11 @@ final class LangfuseService {
    *   The ID of the trace this generation belongs to.
    * @param string $name
    *   The name of the generation event.
-   * @param array $messages
+   * @param array<int, array<string, mixed>> $messages
    *   The input messages for the generation.
-   * @param array $response
+   * @param array<string, mixed> $response
    *   The response from the AI model.
-   * @param array $usage
+   * @param array<string, mixed> $usage
    *   Token usage statistics for the generation.
    * @param string $start_time
    *   The start time.
@@ -129,10 +129,10 @@ final class LangfuseService {
    *   The end time.
    * @param string $model
    *   The name of the AI model used.
-   * @param array $model_params
+   * @param array<string, mixed> $model_params
    *   The model params.
    *
-   * @return array
+   * @return array<string, mixed>
    *   The generation data.
    */
   public function buildGenerationData(
@@ -176,7 +176,7 @@ final class LangfuseService {
   /**
    * Sends events to the Langfuse API.
    *
-   * @param array $events
+   * @param array<int, array<string, mixed>> $events
    *   Array of events to send to Langfuse.
    */
   public function sendEvent(array $events): void {
